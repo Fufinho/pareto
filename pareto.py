@@ -30,7 +30,7 @@ if uploaded_file is not None:
     if st.button("Gerar Análise", type="primary"):
         with st.spinner("Analisando os dados..."):
             try:
-                # --- Lógica de Análise (sem alterações) ---
+                # Todo o código a partir daqui deve ter este nível de indentação
                 df = pd.read_excel(uploaded_file, sheet_name="Entrada")
                 df = df[['Fornecedor', 'Não Conformes', 'Entregues']].dropna()
                 df['Não Conformes'] = pd.to_numeric(df['Não Conformes'], errors='coerce')
@@ -40,18 +40,19 @@ if uploaded_file is not None:
                 if df.empty:
                     st.error("Não foram encontrados dados válidos. Verifique as colunas do seu arquivo.")
                 else:
+                    # Cálculos com a escala de 0-100
                     df['Taxa NC (%)'] = (df['Não Conformes'] / df['Entregues']) * 100
-                    df = df.sort_values(by='Não Conformes', ascending=False).reset_index(drop=True)
                     df['% Individual'] = (df['Não Conformes'] / df['Não Conformes'].sum()) * 100
                     df['% Acumulada'] = df['% Individual'].cumsum()
 
                     st.success("Análise gerada com sucesso!")
 
-                    # --- Exibir Tabela ---
+                    # Exibir Tabela
+                    st.subheader("Tabela de Dados da Análise")
                     st.dataframe(df.style.format({
                         'Taxa NC (%)': '{:.2f}%',
-                        'Não Conformes': '{:,.0f}', # Bônus: formata o número com separador de milhar
-                        'Entregues': '{:,.0f}',     # Bônus: formata o número com separador de milhar
+                        'Não Conformes': '{:,.0f}',
+                        'Entregues': '{:,.0f}',
                         '% Individual': '{:.2f}%',
                         '% Acumulada': '{:.2f}%'
                     }))
@@ -61,45 +62,48 @@ if uploaded_file is not None:
                     fig, ax = plt.subplots(figsize=(10, 6))
                     sns.set_style("whitegrid")
                     ax.bar(df['Fornecedor'], df['% Individual'], color=cores['azul'])
+
+                    # Laço para adicionar os rótulos de dados
+                    for index, row in df.iterrows():
+                        valor_nao_conforme = int(row['Não Conformes'])
+                        altura_barra = row['% Individual']
+                        ax.text(
+                            index,
+                            altura_barra + 1,
+                            f'{valor_nao_conforme:,.0f}',
+                            ha='center',
+                            va='bottom',
+                            fontsize=9,
+                            color=cores['cinza'],
+                            fontweight='bold'
+                        )
+
                     ax.set_ylabel('% Individual', color=cores['azul'])
                     ax.tick_params(axis='y', labelcolor=cores['azul'])
-                    # A linha do formatador de percentual foi removida daqui.
-
                     plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
                     ax2 = ax.twinx()
                     ax2.plot(df['Fornecedor'], df['% Acumulada'], color=cores['amarelo'], marker='o', linewidth=2.5)
                     ax2.set_ylabel('% Acumulada', color=cores['amarelo'])
                     ax2.tick_params(axis='y', labelcolor=cores['amarelo'])
-                    # A outra linha do formatador de percentual também foi removida daqui.
-
-                    ax2.set_ylim(0, 105) # <-- AQUI A MUDANÇA PRINCIPAL de 1.05 para 105.
-                    
+                    ax2.set_ylim(0, 105)
 
                     fig.tight_layout()
-                    st.pyplot(fig)                    # Salva o gráfico em um buffer de memória como uma imagem PNG
+                    st.pyplot(fig)
+
+                    # Gerar Download
+                    st.subheader("Download do Relatório")
                     img_data = io.BytesIO()
                     fig.savefig(img_data, format='png', bbox_inches='tight')
-                    
-                    # Prepara o arquivo Excel em memória
                     output_excel = io.BytesIO()
                     with pd.ExcelWriter(output_excel, engine='xlsxwriter') as writer:
-                        # Escreve a tabela de dados na planilha
                         df.to_excel(writer, index=False, sheet_name='Analise_Pareto')
-                        
-                        # Acessa a planilha para poder adicionar a imagem
-                        workbook = writer.book
                         worksheet = writer.sheets['Analise_Pareto']
-                        
-                        # Ajusta a largura das colunas para melhor visualização
-                        worksheet.set_column('A:A', 20) # Fornecedor
-                        worksheet.set_column('B:C', 15) # Não Conformes e Entregues
-                        worksheet.set_column('D:F', 15) # Colunas de %
-                        
-                        # Insere a imagem do gráfico na planilha, começando na célula H2
+                        worksheet.set_column('A:A', 20)
+                        worksheet.set_column('B:C', 15)
+                        worksheet.set_column('D:F', 15)
                         worksheet.insert_image('H2', 'pareto_graph.png', {'image_data': img_data})
 
-                    # Cria o botão de download com o arquivo Excel gerado
                     st.download_button(
                         label="📥 Baixar Relatório Completo (Tabela + Gráfico)",
                         data=output_excel.getvalue(),
