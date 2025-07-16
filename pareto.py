@@ -68,7 +68,7 @@ if uploaded_file is not None:
                     plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 
                     ax2 = ax.twinx()
-                    ax2.plot(df['Fornece_dor'], df['% Acumulada'], color=cores['amarelo'], marker='o', linewidth=2.5)
+                    ax2.plot(df['Fornecedor'], df['% Acumulada'], color=cores['amarelo'], marker='o', linewidth=2.5)
                     ax2.set_ylabel('% Acumulada', color=cores['amarelo'])
                     ax2.tick_params(axis='y', labelcolor=cores['amarelo'])
                     # A outra linha do formatador de percentual também foi removida daqui.
