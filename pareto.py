@@ -40,43 +40,44 @@ if uploaded_file is not None:
                 if df.empty:
                     st.error("Não foram encontrados dados válidos. Verifique as colunas do seu arquivo.")
                 else:
-                    df['Taxa NC (%)'] = df['Não Conformes'] / df['Entregues']
+                    df['Taxa NC (%)'] = (df['Não Conformes'] / df['Entregues']) * 100
                     df = df.sort_values(by='Não Conformes', ascending=False).reset_index(drop=True)
-                    df['% Individual'] = df['Não Conformes'] / df['Não Conformes'].sum()
+                    df['% Individual'] = (df['Não Conformes'] / df['Não Conformes'].sum()) * 100
                     df['% Acumulada'] = df['% Individual'].cumsum()
 
                     st.success("Análise gerada com sucesso!")
 
                     # --- Exibir Tabela ---
-                    st.subheader("Tabela de Dados da Análise")
                     st.dataframe(df.style.format({
-                        'Taxa NC (%)': '{:.2%}',
-                        '% Individual': '{:.2%}',
-                        '% Acumulada': '{:.2%}'
+                        'Taxa NC (%)': '{:.2f}%',
+                        'Não Conformes': '{:,.0f}', # Bônus: formata o número com separador de milhar
+                        'Entregues': '{:,.0f}',     # Bônus: formata o número com separador de milhar
+                        '% Individual': '{:.2f}%',
+                        '% Acumulada': '{:.2f}%'
                     }))
 
                     # --- Gerar Gráfico ---
                     st.subheader("Gráfico de Pareto")
-                    fig, ax = plt.subplots(figsize=(10, 6)) # Ajustei o tamanho para o Excel
+                    fig, ax = plt.subplots(figsize=(10, 6))
                     sns.set_style("whitegrid")
                     ax.bar(df['Fornecedor'], df['% Individual'], color=cores['azul'])
                     ax.set_ylabel('% Individual', color=cores['azul'])
                     ax.tick_params(axis='y', labelcolor=cores['azul'])
-                    ax.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+                    # A linha do formatador de percentual foi removida daqui.
+
                     plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+
                     ax2 = ax.twinx()
-                    ax2.plot(df['Fornecedor'], df['% Acumulada'], color=cores['amarelo'], marker='o', linewidth=2.5)
+                    ax2.plot(df['Fornece_dor'], df['% Acumulada'], color=cores['amarelo'], marker='o', linewidth=2.5)
                     ax2.set_ylabel('% Acumulada', color=cores['amarelo'])
                     ax2.tick_params(axis='y', labelcolor=cores['amarelo'])
-                    ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-                    ax2.set_ylim(0, 1.05)
-                    fig.tight_layout()
-                    st.pyplot(fig)
+                    # A outra linha do formatador de percentual também foi removida daqui.
 
-                    # --- Gerar Download (SEÇÃO ATUALIZADA) ---
-                    st.subheader("Download do Relatório")
+                    ax2.set_ylim(0, 105) # <-- AQUI A MUDANÇA PRINCIPAL de 1.05 para 105.
                     
-                    # Salva o gráfico em um buffer de memória como uma imagem PNG
+
+                    fig.tight_layout()
+                    st.pyplot(fig)                    # Salva o gráfico em um buffer de memória como uma imagem PNG
                     img_data = io.BytesIO()
                     fig.savefig(img_data, format='png', bbox_inches='tight')
                     
